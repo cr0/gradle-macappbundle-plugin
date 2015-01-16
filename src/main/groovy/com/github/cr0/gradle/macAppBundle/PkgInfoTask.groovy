@@ -1,16 +1,12 @@
-package edu.sc.seis.gradle.macAppBundle
+package com.github.cr0.gradle.macAppBundle
 
-import java.io.File;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
-
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
 
 class PkgInfoTask  extends DefaultTask {
 
     static final String APPL_LINE = 'APPL';
-
 
     @OutputFile
     File getPkgInfoFile() {

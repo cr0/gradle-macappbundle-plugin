@@ -1,22 +1,20 @@
-package edu.sc.seis.gradle.macAppBundle
-
-import java.io.File;
-import java.text.SimpleDateFormat;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.InvalidUserDataException;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
+package com.github.cr0.gradle.macAppBundle
 
 import groovy.xml.MarkupBuilder
+import org.gradle.api.DefaultTask
+import org.gradle.api.InvalidUserDataException
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
+
+import java.text.SimpleDateFormat
 
 class GenerateInfoPlistTask  extends DefaultTask {
 
     static final String XML_DEF_LINE = '<?xml version="1.0" encoding="UTF-8"?>';
     static final String DOCTYPE_LINE = '<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">'
     static final String URL_DOCTYPE_LINE = '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
-    static final String SHAMELESS_PROMO = '<!-- created with Gradle, http://gradle.org, and the MacAppBundle plugin, http://code.google.com/p/gradle-macappbundle -->'
+    static final String SHAMELESS_PROMO = '<!-- created with Gradle, http://gradle.org, and the MacAppBundle plugin, https://github.com/cr0/gradle-macappbundle, forked from http://code.google.com/p/gradle-macappbundle -->'
 
     @OutputFile
     File getPlistFile() {
@@ -31,7 +29,7 @@ class GenerateInfoPlistTask  extends DefaultTask {
             writeInfoPlistAppleJava();
         }
     }
-    
+
     def void writeInfoPlistOracleJava() {
         MacAppBundlePluginExtension extension = project.macAppBundle
         def classpath = project.configurations.runtime.collect { "${it.name}" }
@@ -53,14 +51,14 @@ class GenerateInfoPlistTask  extends DefaultTask {
                 string(project.file(extension.icon).name)
                 key('CFBundleIdentifier')
                 string(extension.mainClassName)
-                
+
                 key('CFBundleInfoDictionaryVersion')
                 string(extension.bundleInfoDictionaryVersion)
                 key('CFBundleName')
                 string(extension.appName)
                 key('CFBundlePackageType')
                 string(extension.bundlePackageType)
-                
+
                 key('CFBundleVersion')
                 string(project.version)
                 key('CFBundleAllowMixedLocalizations')
@@ -78,6 +76,9 @@ class GenerateInfoPlistTask  extends DefaultTask {
                 array() {
                     extension.javaProperties.each { k, v->
                             string("-D$k=$v")
+                    }
+                    extension.javaXProperties.each { v->
+                            string("-X$v")
                     }
                     extension.javaExtras.each { k, v->
                             string("$k=$v")
@@ -97,7 +98,7 @@ class GenerateInfoPlistTask  extends DefaultTask {
         }
         writer.close()
     }
-    
+
     def void writeInfoPlistAppleJava() {
         MacAppBundlePluginExtension extension = project.macAppBundle
         def classpath = project.configurations.runtime.collect { "${it.name}" }
@@ -165,7 +166,7 @@ class GenerateInfoPlistTask  extends DefaultTask {
         } else if (value instanceof Date)  {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
             xml.date(sdf.format(value));
-            //YYYY-MM-DD HH:MM:SS 
+            //YYYY-MM-DD HH:MM:SS
         } else if (value instanceof Short || value instanceof Integer)  {
             xml.integer(value)
         } else if (value instanceof Float || value instanceof Double)  {

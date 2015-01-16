@@ -1,8 +1,5 @@
-package edu.sc.seis.gradle.macAppBundle
+package com.github.cr0.gradle.macAppBundle
 
-import java.io.File;
-
-import org.gradle.api.GradleException
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project;
 
@@ -32,26 +29,26 @@ class MacAppBundlePluginExtension implements Serializable {
 
                 // Obtain status and output
                 def retCode = proc.exitValue();
-                if (retCode == 0) { 
+                if (retCode == 0) {
                     // *out* from the external program is *in* for groovy
                     jreHome = proc.in.text.trim();
                 } else {
                     throw new RuntimeException("bundleJRE not set and return code of "+command+" is nonzero: "+retCode);
-                } 
+                }
             }
          }
     }
-    
+
     /** The style of .app created. Use 'Apple' for the original Apple Java in OSX 10.8 and earlier. Starting in
     OSX 10.9 there can be either Apple Java (1.6) or Oracle Java (1.7) and the internals of the Info.plist and
-    the executable stub are different. Setting this will also change the 
+    the executable stub are different. Setting this will also change the
     bundleExecutable and the jarSubdir as both of these are different in Oracle versus Apple styles.
     The default is 'Oracle'.
-    
+
     More information on the new Oracle style .app can be found <a href="https://java.net/projects/appbundler">here</a>.
     */
     String appStyle = 'Oracle'
-    
+
     def setAppStyle(String val) {
         appStyle = val
         if (val == 'Oracle') {
@@ -64,115 +61,120 @@ class MacAppBundlePluginExtension implements Serializable {
             throw new InvalidUserDataException("I don't understand appStyle='${appStyle}', should be one of 'Apple' or 'Oracle'")
         }
     }
-    
+
     /** The command SetFile, usually located in /usr/bin, but might be in /Developer/Tools,
      *  that sets the magic bit on a .app directory to turn it into a OSX Application.
      *  This does not seem to be required to generate a recognizable .app application.
      */
     String setFileCmd = "/usr/bin/SetFile"
-    
+
     /** The output directory for building the app, relative to the build directory. */
     String appOutputDir = "macApp"
-    
+
     /** The output directory for building the dmg, relative to the build directory. */
     String dmgOutputDir
 
-    /** The initial class to start the application, must contain a public static void main method. */ 
+    /** The initial class to start the application, must contain a public static void main method. */
     String mainClassName
-    
+
     /** Creator code, issued by Apple. Four question marks is the default if no code has been issued. */
     String creatorCode = '????'
-    
+
     /** Icon for this application, probably needs to be a '.icns' file. Defaults to the Apple GenericApp.icns. */
     String icon = 'GenericApp.icns'
-    
+
     /** The JVM version needed. Can append a + to set a minimum. */
     String jvmVersion
-    
+
     /** The background image for the DMG. */
     String backgroundImage
-    
-    /** The name of the application, without the .app extension. 
+
+    /** The name of the application, without the .app extension.
      * Defaults to project.name */
     String appName
-    
+
     /** The name of the volume. Defaults to project.name-project.version */
     String volumeName
-    
-    /** The base name of the dmg file, without the .dmg extension. 
+
+    /** The base name of the dmg file, without the .dmg extension.
      * Defaults to project.name-project.version*/
     String dmgName
-    
-    /** Map of properties to be put as -D options for Oracle Java an 
+
+    /** Map of properties to be put as -D options for Oracle Java an
      * in the Properties dict inside the Java dict for Apple. Usage should be like
         javaProperties.put("apple.laf.useScreenMenuBar", "true") */
     Map javaProperties = [:]
-    
-    /** Map of extra java key-value pairs to be put in JVMOptions for Oracle and 
+
+    /** List of extended properties to be put as -X options for Oracle Java an
+     * in the Properties dict inside the Java dict for Apple. Usage should be like
+        javaProperties.add("apple.laf.useScreenMenuBar") */
+    List javaXProperties = []
+
+    /** Map of extra java key-value pairs to be put in JVMOptions for Oracle and
      * put in the java level dict inside Info.plist for Apple. Usage should be like
         javaExtras.put("mykey", "myvalue") */
     Map javaExtras = [:]
-    
+
     /** Map of extra bundle key-value pairs to be put in the top level dict inside Info.plist. Usage should be like
         bundleExtras.put("mykey", "myvalue") */
     Map bundleExtras = [:]
-    
+
     /** List of arguments to pass to the application. Only used for Oracle-style apps. */
     List arguments = []
-    
+
     /* subdir of the Contents dir to put the jar files. Defaults to Java for Oracle and
      * to Resources/Java for Apple.
      */
     String jarSubdir = 'Java'
-    
+
     /** The name of the executable run by the bundle.
      * Default is 'JavaAppLauncher'. This is also set when setting the style to Oracle or Apple.
      */
     String bundleExecutable = 'JavaAppLauncher'
-    
+
     /** BundleAllowMixedLocalizations, default is true */
     boolean bundleAllowMixedLocalizations = true
-    
+
     /** BundlePackageType, default is 'APPL' */
     String bundlePackageType = 'APPL'
-    
+
     /** BundleInfoDictionaryVersion, default is '6.0' */
     String bundleInfoDictionaryVersion = '6.0'
-    
+
     /** The development region.
      * Default is 'English'.
      */
     String bundleDevelopmentRegion = 'English'
-    
+
     /** Whether or not to bundle the JRE in the .app. Only used if the app style is Oracle.
      * Defaults to false.
      */
     boolean bundleJRE = false;
-    
+
     /** Directory from which to copy the JRE. Generally this will be the same as
     $JAVA_HOME or the result of /usr/libexec/java_home. Note that to be compatible
     with the appbundler utility from Oracle, this is usually the Contents/Home
     subdirectory of the JDK install.
-    
+
     If bundleJRE is true, but jreHome is null, it will be set to the output of
     /usr/libexec/java_home, which should be correct in most cases.
-    
+
     For example:
     /Library/Java/JavaVirtualMachines/jdk1.7.0_51.jdk/Contents/Home
     */
     String jreHome
-    
+
     /** for codesign */
     String certIdentity = null
-    
+
     /** for codesign */
     String codeSignCmd = "codesign"
-    
+
     /** for codesign */
     String keyChain = null
-    
+
     /** An AppleScript script for setting the background image of the dmg.
-     * see 
+     * see
      * http://asmaloney.com/2013/07/howto/packaging-a-mac-os-x-application-using-a-dmg/
      */
     String backgroundScript = """
@@ -196,7 +198,7 @@ class MacAppBundlePluginExtension implements Serializable {
         end tell
      end tell
 """
-    
+
     public String getJREDirName() {
         return new File(jreHome).getParentFile().getParentFile().getName()
     }
@@ -231,7 +233,7 @@ class MacAppBundlePluginExtension implements Serializable {
         result = prime * result + ((codeSignCmd == null) ? 0 : codeSignCmd.hashCode());
         result = prime * result + ((keyChain == null) ? 0 : keyChain.hashCode());
         result = prime * result + ((backgroundScript == null) ? 0 : backgroundScript.hashCode());
-        
+
         return result;
     }
 
@@ -343,7 +345,7 @@ class MacAppBundlePluginExtension implements Serializable {
                 return false;
         } else if (!keyChain.equals(other.keyChain))
             return false;
-            
+
         if (javaProperties == null) {
             if (other.javaProperties != null)
                 return false;
@@ -369,9 +371,9 @@ class MacAppBundlePluginExtension implements Serializable {
                 return false;
         } else if (!backgroundScript.equals(other.backgroundScript))
             return false;
-            
+
         return true;
     }
-    
-    
+
+
 }

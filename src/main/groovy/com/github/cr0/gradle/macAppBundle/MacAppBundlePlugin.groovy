@@ -1,18 +1,16 @@
-package edu.sc.seis.gradle.macAppBundle;
+package com.github.cr0.gradle.macAppBundle
 
-import org.gradle.api.Project;
-import org.gradle.api.Plugin;
-import org.gradle.api.Task;
-import org.gradle.api.InvalidUserDataException;
-import org.gradle.api.file.CopySpec;
-import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.tasks.JavaExec;
-import org.gradle.api.tasks.Sync;
-import org.gradle.api.tasks.Copy;
-import org.gradle.api.tasks.Exec;
-import org.gradle.api.tasks.bundling.Zip;
-import groovy.text.SimpleTemplateEngine;
-
+import groovy.text.SimpleTemplateEngine
+import org.gradle.api.InvalidUserDataException
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.file.CopySpec
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.bundling.Zip
 
 class MacAppBundlePlugin implements Plugin<Project> {
 
@@ -296,7 +294,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
     }
 
 
-    /** see 
+    /** see
      http://asmaloney.com/2013/07/howto/packaging-a-mac-os-x-application-using-a-dmg/
      */
     private void doBackgroundImageAppleScript(File dmgOutDir,
