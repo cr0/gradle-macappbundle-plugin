@@ -14,6 +14,7 @@
  limitations under the License.
  */
 package com.github.cr0.gradle.macAppBundle
+
 import groovy.xml.MarkupBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
@@ -25,9 +26,8 @@ import java.text.SimpleDateFormat
 class GenerateInfoPlistTask extends DefaultTask {
 
     static final String XML_DEF_LINE = '<?xml version="1.0" encoding="UTF-8"?>';
-    static final String DOCTYPE_LINE = '<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">'
     static final String URL_DOCTYPE_LINE = '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
-    static final String SHAMELESS_PROMO = '<!-- created with Gradle, http://gradle.org, and the MacAppBundle plugin, https://github.com/cr0/gradle-macappbundle, forked from http://code.google.com/p/gradle-macappbundle -->'
+    static final String SHAMELESS_PROMO = '<!-- created with Gradle, http://gradle.org and the MacAppBundle plugin (https://github.com/cr0/gradle-macappbundle) -->'
 
     @OutputFile
     File getPlistFile() {
@@ -36,76 +36,102 @@ class GenerateInfoPlistTask extends DefaultTask {
 
     @TaskAction
     def void writeInfoPlist() {
-        MacAppBundlePluginExtension extension = project.macAppBundle
+        def extension = project.macAppBundle
+
+        // add default to class path
         extension.javaClassPath.add("\$APP_ROOT/Contents/$extension.jarSubdir/*")
 
         def file = getPlistFile()
         file.parentFile.mkdirs()
 
         def writer = new BufferedWriter(new FileWriter(file))
+
+        // header
         writer.writeLine(XML_DEF_LINE);
         writer.writeLine(URL_DOCTYPE_LINE);
         writer.writeLine(SHAMELESS_PROMO);
 
+        // content
         def xml = new MarkupBuilder(writer)
         xml.plist(version: "1.0") {
             dict() {
+
                 key('CFBundleDevelopmentRegion')
                 string(extension.bundleDevelopmentRegion)
+
                 key('CFBundleExecutable')
                 string(extension.bundleExecutable)
+
                 key('CFBundleIconFile')
                 string(project.file(extension.icon).name)
+
                 key('CFBundleIdentifier')
-                string(extension.mainClassName)
+                string(extension.bundleIdentifier)
 
                 key('CFBundleInfoDictionaryVersion')
                 string(extension.bundleInfoDictionaryVersion)
+
                 key('CFBundleName')
                 string(extension.appName)
+
                 key('CFBundlePackageType')
                 string(extension.bundlePackageType)
 
                 key('CFBundleVersion')
-                string(project.version)
-                key('CFBundleAllowMixedLocalizations')
+                string(extension.version)
 
-                if (extension.bundleAllowMixedLocalizations) {
-                    string('true')
-                } else {
-                    string('false')
-                }
+                key('CFBundleShortVersionString')
+                string(extension.shortVersion)
+
                 key('CFBundleSignature')
                 string(extension.creatorCode)
 
+                key('CFBundleAllowMixedLocalizations')
+                extension.bundleAllowMixedLocalizations ? xml.true() : xml.false()
+
+                if (extension.appCategory != null) {
+                    key('LSApplicationCategoryType')
+                    string(extension.appCategory)
+                }
+
+                if(extension.agent) {
+                    key('LSUIElement')
+                    xml.true()
+                }
+
+                key('NSHumanReadableCopyright')
+                string(extension.copyright)
+
+                // add user defined values to bundle
+                extension.bundleExtras.each { k, v ->
+                    key("$k")
+                    doValue(xml, v)
+                }
+
+                // java specific values
                 if (extension.bundleJRE) {
                     def jreVersion = new File(extension.jreHome).getParentFile().getParentFile().getName()
                     key('JVMRuntime')
                     string(jreVersion)
                 }
+
                 key('JVMMainClassName')
                 string(extension.mainClassName)
-                key('JVMOptions')
-                array() {
-                    extension.javaProperties.each { k, v ->
-                        string("-D$k=$v")
-                    }
-                    extension.javaXProperties.each { v ->
-                        string("-X$v")
-                    }
-                    extension.javaExtras.each { k, v ->
-                        string("$k=$v")
-                    }
-                }
+
                 key('JVMClassPath')
                 array() {
-                    extension.javaClassPath.each { v ->
-                        string("$v")
-                    }
+                    extension.javaClassPath.each { v -> string("$v") }
                 }
-                extension.bundleExtras.each { k, v ->
-                    key("$k")
-                    doValue(xml, v)
+
+                key('JVMOptions')
+                array() {
+                    extension.javaProperties.each { k, v -> string("-D$k=$v")}
+                    extension.javaXProperties.each { v -> string("-X$v") }
+                }
+
+                key('JVMArguments')
+                array() {
+                    extension.arguments.each { v -> string("$v")}
                 }
             }
         }
@@ -115,33 +141,34 @@ class GenerateInfoPlistTask extends DefaultTask {
     def doValue(xml, value) {
         if (value instanceof String) {
             xml.string("$value")
-        } else if (value instanceof Date) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
-            xml.date(sdf.format(value));
-            //YYYY-MM-DD HH:MM:SS
-        } else if (value instanceof Short || value instanceof Integer) {
+        }
+        else if (value instanceof Date) {
+            xml.date(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z").format(value));
+        }
+        else if (value instanceof Short || value instanceof Integer) {
             xml.integer(value)
-        } else if (value instanceof Float || value instanceof Double) {
+        }
+        else if (value instanceof Float || value instanceof Double) {
             xml.real(value)
-        } else if (value instanceof Boolean) {
-            if (value) {
-                xml.true()
-            } else {
-                xml.false()
-            }
-        } else if (value instanceof Map) {
+        }
+        else if (value instanceof Boolean) {
+            value ? xml.true() : xml.false()
+        }
+        else if (value instanceof Map) {
             xml.dict {
                 value.each { subk, subv ->
                     key("$subk")
                     doValue(xml, subv)
                 }
             }
-        } else if (value instanceof List || value instanceof Object[]) {
+        }
+        else if (value instanceof List || value instanceof Object[]) {
             xml.array {
                 value.each { subv ->
                     doValue(xml, subv)
                 }
             }
-        } else throw new InvalidUserDataException("unknown type for plist: " + value)
+        }
+        else throw new InvalidUserDataException("unknown type for plist: " + value)
     }
 }

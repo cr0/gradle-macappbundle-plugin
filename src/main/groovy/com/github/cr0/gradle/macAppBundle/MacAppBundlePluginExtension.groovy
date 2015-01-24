@@ -27,29 +27,12 @@ class MacAppBundlePluginExtension implements Serializable {
         if (appName == null) appName = "${-> project.name}"
         if (volumeName == null) volumeName = "${-> project.name}-${-> project.version}"
         if (dmgName == null) dmgName = "${-> project.name}-${-> project.version}"
-        if (jvmVersion == null) jvmVersion = project.targetCompatibility.toString() + "+"
         if (dmgOutputDir == null) dmgOutputDir = "${-> project.distsDirName}"
-
-        if (bundleJRE) {
-            if (jreHome == null) {
-                File jhFile = new File("/usr/libexec/java_home");
-                if (!jhFile.exists()) {
-                    throw new RuntimeException("bundleJRE not set and unable to find " + command + ", is oracle java installed?");
-                }
-                def command = """/usr/libexec/java_home"""// Create the String
-                def proc = command.execute()                 // Call *execute* on the string
-                proc.waitFor()                               // Wait for the command to finish
-
-                // Obtain status and output
-                def retCode = proc.exitValue();
-                if (retCode == 0) {
-                    // *out* from the external program is *in* for groovy
-                    jreHome = proc.in.text.trim();
-                } else {
-                    throw new RuntimeException("bundleJRE not set and return code of " + command + " is nonzero: " + retCode);
-                }
-            }
-        }
+        if (version == null) version = "${-> project.version}"
+        if (shortVersion == null) shortVersion = "${-> project.version}"
+        if (copyright == null) copyright = "Copyright ${-> Calendar.instance.get(Calendar.YEAR)} ${-> project.name}"
+        if (jvmVersion == null) jvmVersion = project.targetCompatibility.toString() + "+"
+        if (bundleJRE && jreHome == null) jreHome = findJREHome()
     }
 
     /** The command SetFile, usually located in /usr/bin, but might be in /Developer/Tools,
@@ -100,11 +83,6 @@ class MacAppBundlePluginExtension implements Serializable {
      javaProperties.add("apple.laf.useScreenMenuBar") */
     List javaXProperties = []
 
-    /** Map of extra java key-value pairs to be put in JVMOptions for Oracle and
-     * put in the java level dict inside Info.plist for Apple. Usage should be like
-     javaExtras.put("mykey", "myvalue") */
-    Map javaExtras = [:]
-
     /** Map of extra bundle key-value pairs to be put in the top level dict inside Info.plist. Usage should be like
      bundleExtras.put("mykey", "myvalue") */
     Map bundleExtras = [:]
@@ -112,7 +90,7 @@ class MacAppBundlePluginExtension implements Serializable {
     /** List of arguments to pass to the application. Only used for Oracle-style apps. */
     List arguments = []
 
-    /** List of folders to search for additional jars */
+    /** List of folders to search for additional jars including wildcard support */
     List javaClassPath = []
 
     /* subdir of the Contents dir to put the jar files. Defaults to Java for Oracle and
@@ -134,10 +112,19 @@ class MacAppBundlePluginExtension implements Serializable {
     /** BundleInfoDictionaryVersion, default is '6.0' */
     String bundleInfoDictionaryVersion = '6.0'
 
+    String bundleIdentifier
+
     /** The development region.
      * Default is 'English'.
      */
     String bundleDevelopmentRegion = 'English'
+
+    String appCategory
+
+    String version
+    String shortVersion
+
+    boolean agent = false
 
     /** Whether or not to bundle the JRE in the .app. Only used if the app style is Oracle.
      * Defaults to false.
@@ -157,6 +144,8 @@ class MacAppBundlePluginExtension implements Serializable {
      */
     String jreHome
 
+    String copyright
+
     /** for codesign */
     String certIdentity = null
 
@@ -171,8 +160,8 @@ class MacAppBundlePluginExtension implements Serializable {
      * http://asmaloney.com/2013/07/howto/packaging-a-mac-os-x-application-using-a-dmg/
      */
     String backgroundScript = """
-   tell application "Finder"
-     tell disk "\${VOL_NAME}"
+    tell application "Finder"
+        tell disk "\${VOL_NAME}"
            open
            set current view of container window to icon view
            set toolbar visible of container window to false
@@ -196,6 +185,20 @@ class MacAppBundlePluginExtension implements Serializable {
         return new File(jreHome).getParentFile().getParentFile().getName()
     }
 
+    private String findJREHome() {
+        File jhFile = new File("/usr/libexec/java_home");
+
+        if (!jhFile.exists()) throw new RuntimeException("bundleJRE not set and unable to find ${-> jhFile.absolutePath}, is oracle java installed?")
+
+        def proc = jhFile.absolutePath.execute()
+        proc.waitFor()
+        def retCode = proc.exitValue();
+
+        if (retCode) throw new RuntimeException("bundleJRE not set and return code of ${-> jhFile.absolutePath} is nonzero: $retCode")
+
+        return proc.in.text.trim();
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -212,7 +215,6 @@ class MacAppBundlePluginExtension implements Serializable {
         result = prime * result + ((volumeName == null) ? 0 : volumeName.hashCode());
         result = prime * result + ((dmgName == null) ? 0 : dmgName.hashCode());
         result = prime * result + (javaProperties == null ? 0 : javaProperties.hashCode);
-        result = prime * result + (javaExtras == null ? 0 : javaExtras.hashCode);
         result = prime * result + (bundleExtras == null ? 0 : bundleExtras.hashCode);
         result = prime * result + ((bundleExecutable == null) ? 0 : bundleExecutable.hashCode());
         result = prime * result + (bundleAllowMixedLocalizations ? 1231 : 1237);
@@ -244,127 +246,151 @@ class MacAppBundlePluginExtension implements Serializable {
         if (creatorCode == null) {
             if (other.creatorCode != null)
                 return false;
-        } else if (!creatorCode.equals(other.creatorCode))
+        }
+        else if (!creatorCode.equals(other.creatorCode))
             return false;
         if (icon == null) {
             if (other.icon != null)
                 return false;
-        } else if (!icon.equals(other.icon))
+        }
+        else if (!icon.equals(other.icon))
             return false;
         if (jvmVersion == null) {
             if (other.jvmVersion != null)
                 return false;
-        } else if (!jvmVersion.equals(other.jvmVersion))
+        }
+        else if (!jvmVersion.equals(other.jvmVersion))
             return false;
         if (mainClassName == null) {
             if (other.mainClassName != null)
                 return false;
-        } else if (!mainClassName.equals(other.mainClassName))
+        }
+        else if (!mainClassName.equals(other.mainClassName))
             return false;
         if (appOutputDir == null) {
             if (other.appOutputDir != null)
                 return false;
-        } else if (!appOutputDir.equals(other.appOutputDir))
+        }
+        else if (!appOutputDir.equals(other.appOutputDir))
             return false;
         if (dmgOutputDir == null) {
             if (other.dmgOutputDir != null)
                 return false;
-        } else if (!dmgOutputDir.equals(other.dmgOutputDir))
+        }
+        else if (!dmgOutputDir.equals(other.dmgOutputDir))
             return false;
         if (setFileCmd == null) {
             if (other.setFileCmd != null)
                 return false;
-        } else if (!setFileCmd.equals(other.setFileCmd))
+        }
+        else if (!setFileCmd.equals(other.setFileCmd))
             return false;
         if (backgroundImage == null) {
             if (other.backgroundImage != null)
                 return false;
-        } else if (!backgroundImage.equals(other.backgroundImage))
+        }
+        else if (!backgroundImage.equals(other.backgroundImage))
             return false;
         if (appName == null) {
             if (other.appName != null)
                 return false;
-        } else if (!appName.equals(other.appName))
+        }
+        else if (!appName.equals(other.appName))
             return false;
         if (volumeName == null) {
             if (other.volumeName != null)
                 return false;
-        } else if (!volumeName.equals(other.volumeName))
+        }
+        else if (!volumeName.equals(other.volumeName))
             return false;
         if (dmgName == null) {
             if (other.dmgName != null)
                 return false;
-        } else if (!dmgName.equals(other.dmgName))
+        }
+        else if (!dmgName.equals(other.dmgName))
             return false;
         if (bundleExecutable == null) {
             if (other.bundleExecutable != null)
                 return false;
-        } else if (!bundleExecutable.equals(other.bundleExecutable))
+        }
+        else if (!bundleExecutable.equals(other.bundleExecutable))
             return false;
         if (bundleAllowMixedLocalizations != other.bundleAllowMixedLocalizations)
             return false;
         if (bundlePackageType == null) {
             if (other.bundlePackageType != null)
                 return false;
-        } else if (!bundlePackageType.equals(other.bundlePackageType))
+        }
+        else if (!bundlePackageType.equals(other.bundlePackageType))
             return false;
         if (bundleInfoDictionaryVersion == null) {
             if (other.bundleInfoDictionaryVersion != null)
                 return false;
-        } else if (!bundleInfoDictionaryVersion.equals(other.bundleInfoDictionaryVersion))
+        }
+        else if (!bundleInfoDictionaryVersion.equals(other.bundleInfoDictionaryVersion))
             return false;
         if (bundleDevelopmentRegion == null) {
             if (other.bundleDevelopmentRegion != null)
                 return false;
-        } else if (!bundleDevelopmentRegion.equals(other.bundleDevelopmentRegion))
+        }
+        else if (!bundleDevelopmentRegion.equals(other.bundleDevelopmentRegion))
             return false;
         if (bundleJRE != other.bundleJRE)
             return false;
         if (jreHome == null) {
             if (other.jreHome != null)
                 return false;
-        } else if (!jreHome.equals(other.jreHome))
+        }
+        else if (!jreHome.equals(other.jreHome))
             return false;
         if (certIdentity == null) {
             if (other.certIdentity != null)
                 return false;
-        } else if (!certIdentity.equals(other.certIdentity))
+        }
+        else if (!certIdentity.equals(other.certIdentity))
             return false;
         if (codeSignCmd == null) {
             if (other.codeSignCmd != null)
                 return false;
-        } else if (!codeSignCmd.equals(other.codeSignCmd))
+        }
+        else if (!codeSignCmd.equals(other.codeSignCmd))
             return false;
         if (keyChain == null) {
             if (other.keyChain != null)
                 return false;
-        } else if (!keyChain.equals(other.keyChain))
+        }
+        else if (!keyChain.equals(other.keyChain))
             return false;
 
         if (javaProperties == null) {
             if (other.javaProperties != null)
                 return false;
-        } else if (!javaProperties.equals(other.javaProperties))
+        }
+        else if (!javaProperties.equals(other.javaProperties))
             return false;
         if (javaExtras == null) {
             if (other.javaExtras != null)
                 return false;
-        } else if (!javaExtras.equals(other.javaExtras))
+        }
+        else if (!javaExtras.equals(other.javaExtras))
             return false;
         if (bundleExtras == null) {
             if (other.bundleExtras != null)
                 return false;
-        } else if (!bundleExtras.equals(other.bundleExtras))
+        }
+        else if (!bundleExtras.equals(other.bundleExtras))
             return false;
         if (arguments == null) {
             if (other.arguments != null)
                 return false;
-        } else if (!arguments.equals(other.arguments))
+        }
+        else if (!arguments.equals(other.arguments))
             return false;
         if (backgroundScript == null) {
             if (other.backgroundScript != null)
                 return false;
-        } else if (!backgroundScript.equals(other.backgroundScript))
+        }
+        else if (!backgroundScript.equals(other.backgroundScript))
             return false;
 
         return true;
