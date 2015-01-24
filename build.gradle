@@ -1,4 +1,3 @@
-
 buildscript {
     repositories {
         jcenter()
@@ -10,15 +9,52 @@ buildscript {
     }
 }
 
+apply plugin: 'cpp'
+apply plugin: 'objective-c'
 apply plugin: 'groovy'
 apply plugin: 'nu.studer.plugindev'
 
 group = 'com.github.cr0'
 
+model {
+    platforms {
+        osx {
+            operatingSystem "osx"
+        }
+    }
+
+    buildTypes {
+        release
+    }
+}
+
+executables {
+    main {
+        baseName "JavaAppLauncher"
+    }
+
+    all {
+        binaries.all {
+            if (targetPlatform.operatingSystem.macOsX) {
+                objcCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+                objcCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
+                objcCompiler.args '-F', "${org.gradle.internal.jvm.Jvm.current().javaHome}/../../"
+                linker.args '-framework', "Cocoa"
+                linker.args '-isysroot', "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk"
+            }
+        }
+    }
+}
+
+copy {
+    from 'build/binaries/mainExecutable/JavaAppLauncher'
+    into 'src/main/resources/com/github/cr0/macAppBundle'
+}
+
 plugindev {
     pluginId 'com.github.cr0.macAppBundle'
     pluginImplementationClass 'com.github.cr0.gradle.macAppBundle.MacAppBundlePlugin'
-    pluginDescription 'A Gradle Plugin to create a Mac OSX .app application based on the project.'
+    pluginDescription 'A Gradle Plugin to create a Mac OSX .app application based on the project with customizable class paths.'
     pluginLicenses 'Apache-2.0'
     pluginTags 'gradle', 'osx', 'appbundle'
     authorId 'cr0'

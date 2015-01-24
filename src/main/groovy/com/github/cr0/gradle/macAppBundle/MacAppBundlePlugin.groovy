@@ -1,3 +1,18 @@
+/*
+ Copyright 2015 cr0 (Copyright 2014 crotwell)
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 package com.github.cr0.gradle.macAppBundle
 
 import groovy.text.SimpleTemplateEngine
@@ -78,15 +93,15 @@ class MacAppBundlePlugin implements Plugin<Project> {
         zipTask.dependsOn(createAppTask)
         zipTask.mustRunAfter codeSignTask
         zipTask.mustRunAfter setFileTask
-        project.getTasksByName("assemble", true).each{ t -> t.dependsOn(dmgTask) }
+        project.getTasksByName("assemble", true).each { t -> t.dependsOn(dmgTask) }
     }
 
     private Task addCreateInfoPlistTask(Project project) {
         Task task = project.tasks.create(TASK_INFO_PLIST_GENERATE_NAME, GenerateInfoPlistTask)
         task.description = "Creates the Info.plist configuration file inside the mac osx .app directory."
         task.group = GROUP
-        task.inputs.property("project version", {project.version})
-        task.inputs.property("MacAppBundlePlugin extension", {project.macAppBundle})
+        task.inputs.property("project version", { project.version })
+        task.inputs.property("MacAppBundlePlugin extension", { project.macAppBundle })
         return task
     }
 
@@ -95,7 +110,9 @@ class MacAppBundlePlugin implements Plugin<Project> {
         task.description = "Copies the project dependency jars in the Contents/Resorces/Java directory."
         task.group = GROUP
         task.with configureDistSpec(project)
-        task.into { project.file("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app/Contents/${->project.macAppBundle.jarSubdir}") }
+        task.into {
+            project.file("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app/Contents/${-> project.macAppBundle.jarSubdir}")
+        }
         return task
     }
 
@@ -103,9 +120,11 @@ class MacAppBundlePlugin implements Plugin<Project> {
         Task task = project.tasks.create(TASK_COPY_STUB_NAME, CopyJavaStubTask)
         task.description = "Copies the JavaApplicationStub into the Contents/MacOS directory."
         task.group = GROUP
-        task.doLast { ant.chmod(dir: project.file("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app/Contents/MacOS"), perm: "755", includes: "*") }
-        task.inputs.property("bundle executable name", {project.macAppBundle.bundleExecutable})
-        task.outputs.file("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app/Contents/MacOS/${->project.macAppBundle.bundleExecutable}")
+        task.doLast {
+            ant.chmod(dir: project.file("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app/Contents/MacOS"), perm: "755", includes: "*")
+        }
+        task.inputs.property("bundle executable name", { project.macAppBundle.bundleExecutable })
+        task.outputs.file("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app/Contents/MacOS/${-> project.macAppBundle.bundleExecutable}")
         return task
     }
 
@@ -113,8 +132,8 @@ class MacAppBundlePlugin implements Plugin<Project> {
         Task task = project.tasks.create(TASK_COPY_ICON_NAME, Copy)
         task.description = "Copies the icon into the Contents/MacOS directory."
         task.group = GROUP
-        task.from "${->project.macAppBundle.icon}"
-        task.into "${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app/Contents/Resources"
+        task.from "${-> project.macAppBundle.icon}"
+        task.into "${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app/Contents/Resources"
         return task
     }
 
@@ -122,7 +141,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
         Task task = project.tasks.create(TASK_PKG_INFO_GENERATE_NAME, PkgInfoTask)
         task.description = "Creates the PkgInfo configuration file inside the mac osx .app directory."
         task.group = GROUP
-        task.inputs.property("creator code", { project.macAppBundle.creatorCode } )
+        task.inputs.property("creator code", { project.macAppBundle.creatorCode })
         return task
     }
 
@@ -130,7 +149,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
         Task task = project.tasks.create(TASK_BUNDLE_JRE_NAME, Sync)
         task.description = "Copies the JRE into the Contents/PlugIns directory."
         task.group = GROUP
-        task.from("${->project.macAppBundle.jreHome}/../..") {
+        task.from("${-> project.macAppBundle.jreHome}/../..") {
             include('Contents/Home/jre/**')
             include('Contents/Info.plist')
             exclude('Contents/Home/jre/bin')
@@ -144,7 +163,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
             exclude('Contents/Home/jre/lib/plugin.jar')
             exclude('Contents/Home/jre/lib/security/javaws.policy')
         }
-        task.into "${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app/Contents/PlugIns/${->project.macAppBundle.getJREDirName()}"
+        task.into "${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app/Contents/PlugIns/${-> project.macAppBundle.getJREDirName()}"
         task.onlyIf { project.macAppBundle.bundleJRE }
         return task
     }
@@ -155,10 +174,10 @@ class MacAppBundlePlugin implements Plugin<Project> {
         task.group = GROUP
         task.doFirst {
             workingDir = project.file("${project.buildDir}/${project.macAppBundle.appOutputDir}")
-            commandLine "${->project.macAppBundle.setFileCmd}", "-a", "B", "${->project.macAppBundle.appName}.app"
+            commandLine "${-> project.macAppBundle.setFileCmd}", "-a", "B", "${-> project.macAppBundle.appName}.app"
         }
-        task.inputs.dir("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app")
-        task.outputs.dir("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app")
+        task.inputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app")
+        task.outputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app")
         return task
     }
 
@@ -167,17 +186,17 @@ class MacAppBundlePlugin implements Plugin<Project> {
         task.description = "Runs codesign on the .app (not required)"
         task.group = GROUP
         task.doFirst {
-            if ( ! project.macAppBundle.certIdentity) {
+            if (!project.macAppBundle.certIdentity) {
                 throw new InvalidUserDataException("No value has been specified for property certIdentity")
             }
             workingDir = project.file("${project.buildDir}/${project.macAppBundle.appOutputDir}")
-            commandLine "${->project.macAppBundle.codeSignCmd}", "-s", "${->project.macAppBundle.certIdentity}", "-f", "${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app"
+            commandLine "${-> project.macAppBundle.codeSignCmd}", "-s", "${-> project.macAppBundle.certIdentity}", "-f", "${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app"
             if (project.macAppBundle.keyChain) {
-                commandLine << "--keychain" << "${->project.macAppBundle.keyChain}"
+                commandLine << "--keychain" << "${-> project.macAppBundle.keyChain}"
             }
         }
-        task.inputs.dir("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app")
-        task.outputs.dir("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app")
+        task.inputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app")
+        task.outputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app")
         return task
     }
 
@@ -188,19 +207,18 @@ class MacAppBundlePlugin implements Plugin<Project> {
         // delay configure of task until extension is populated
         project.afterEvaluate {
             task.destinationDir = project.file("${project.buildDir}/${project.macAppBundle.dmgOutputDir}")
-            task.from("${->project.buildDir}/${->project.macAppBundle.appOutputDir}") {
-                include "${->project.macAppBundle.appName}.app/**"
-                exclude "${->project.macAppBundle.appName}.app/Contents/MacOS"
+            task.from("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}") {
+                include "${-> project.macAppBundle.appName}.app/**"
+                exclude "${-> project.macAppBundle.appName}.app/Contents/MacOS"
             }
-            task.from("${->project.buildDir}/${->project.macAppBundle.appOutputDir}") {
-                include "${->project.macAppBundle.appName}.app/Contents/MacOS/**"
+            task.from("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}") {
+                include "${-> project.macAppBundle.appName}.app/Contents/MacOS/**"
                 fileMode 0777  // octal requires leading zero
             }
-            task.archiveName = "${->project.macAppBundle.dmgName}.zip"
+            task.archiveName = "${-> project.macAppBundle.dmgName}.zip"
         }
         return task
     }
-
 
 
     private Task createCopyBackgroundImageTask(Project project) {
@@ -211,8 +229,8 @@ class MacAppBundlePlugin implements Plugin<Project> {
         project.afterEvaluate {
             task.onlyIf { project.macAppBundle.backgroundImage != null }
             if (project.macAppBundle.backgroundImage != null) {
-                task.from "${->project.macAppBundle.backgroundImage}"
-                task.into "${->project.buildDir}/${->project.macAppBundle.appOutputDir}/.background"
+                task.from "${-> project.macAppBundle.backgroundImage}"
+                task.into "${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/.background"
             }
         }
         return task
@@ -222,9 +240,9 @@ class MacAppBundlePlugin implements Plugin<Project> {
         def task = project.tasks.create(TASK_CREATE_DMG, Exec)
         task.description = "Create a dmg containing the .app and optional background image"
         task.group = GROUP
-        task.inputs.dir("${->project.buildDir}/${->project.macAppBundle.appOutputDir}")
-        task.inputs.property("backgroundImage", { project.macAppBundle.backgroundImage } )
-        task.outputs.file("${->project.buildDir}/${->project.macAppBundle.dmgOutputDir}/${->project.macAppBundle.dmgName}.dmg")
+        task.inputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}")
+        task.inputs.property("backgroundImage", { project.macAppBundle.backgroundImage })
+        task.outputs.file("${-> project.buildDir}/${-> project.macAppBundle.dmgOutputDir}/${-> project.macAppBundle.dmgName}.dmg")
 
         project.afterEvaluate {
             def dmgOutDir = project.file("${project.buildDir}/${project.macAppBundle.dmgOutputDir}")
@@ -233,11 +251,11 @@ class MacAppBundlePlugin implements Plugin<Project> {
             if (project.macAppBundle.backgroundImage != null) {
                 // if we have a background image, we need to create a RW disk image so we can set it,
                 // and then convert the RW to a compressed RO image later with the final name
-                tmpDmgName = "tmp_${->project.macAppBundle.dmgName}.dmg"
+                tmpDmgName = "tmp_${-> project.macAppBundle.dmgName}.dmg"
                 dmgFormat = "UDRW"
             } else {
                 // in this case, we create the disk image in one go without the conversion step
-                tmpDmgName = "${->project.macAppBundle.dmgName}.dmg"
+                tmpDmgName = "${-> project.macAppBundle.dmgName}.dmg"
                 dmgFormat = "UDZO";
             }
             task.doFirst {
@@ -245,27 +263,28 @@ class MacAppBundlePlugin implements Plugin<Project> {
                 if (dmgFile.exists()) {
                     dmgFile.delete()
                 }
-                def finalDmgFile = new File(dmgOutDir, "${->project.macAppBundle.dmgName}.dmg")
+                def finalDmgFile = new File(dmgOutDir, "${-> project.macAppBundle.dmgName}.dmg")
                 if (finalDmgFile.exists()) {
                     finalDmgFile.delete()
                 }
                 workingDir = dmgOutDir
                 commandLine "hdiutil", "create", "-srcfolder",
                         project.file("${project.buildDir}/${project.macAppBundle.appOutputDir}"),
-                        "-format", "${->dmgFormat}", "-fs", "HFS+",
-                        "-volname", "${->project.macAppBundle.volumeName}",
+                        "-format", "${-> dmgFormat}", "-fs", "HFS+",
+                        "-volname", "${-> project.macAppBundle.volumeName}",
                         tmpDmgName
             }
             task.doLast {
                 if (project.macAppBundle.backgroundImage != null) {
-                    String backgroundImage = new File(project.macAppBundle.backgroundImage).getName() // just name, not paths
+                    String backgroundImage = new File(project.macAppBundle.backgroundImage).getName()
+                    // just name, not paths
                     doBackgroundImageAppleScript(dmgOutDir,
-                                                 tmpDmgName,
-                                                  "${->project.macAppBundle.dmgName}.dmg",
-                                                   "${->project.macAppBundle.volumeName}",
-                                                    backgroundImage,
-                                                    "${->project.macAppBundle.appName}",
-                                                    "${->project.macAppBundle.backgroundScript}")
+                            tmpDmgName,
+                            "${-> project.macAppBundle.dmgName}.dmg",
+                            "${-> project.macAppBundle.volumeName}",
+                            backgroundImage,
+                            "${-> project.macAppBundle.appName}",
+                            "${-> project.macAppBundle.backgroundScript}")
                 }
             }
             task.doFirst { task.outputs.files.each { it.delete() } }
@@ -293,7 +312,6 @@ class MacAppBundlePlugin implements Plugin<Project> {
         return distSpec
     }
 
-
     /** see
      http://asmaloney.com/2013/07/howto/packaging-a-mac-os-x-application-using-a-dmg/
      */
@@ -312,13 +330,13 @@ class MacAppBundlePlugin implements Plugin<Project> {
         def mountCmdText = "hdiutil attach -readwrite -noverify ${dmgOutDir}/${tmpDmgFile}"
 
         String mountCmdOut = runCmd(mountCmdText, "Unable to mount dmg")
-        if ( ! new File("/Volumes/${volMountPoint}").exists()) {
+        if (!new File("/Volumes/${volMountPoint}").exists()) {
             throw new RuntimeException("Unable to find volume mount point to set background image. ${volMMountPoint}")
         }
 
         runCmd("ln -s /Applications /Volumes/${volMountPoint}", "Unable to link /Applications in dmg");
 
-        def binding = ["APP_NAME":appName, "VOL_NAME":volMountPoint, "DMG_BACKGROUND_IMG":backgroundImage ]
+        def binding = ["APP_NAME": appName, "VOL_NAME": volMountPoint, "DMG_BACKGROUND_IMG": backgroundImage]
         def engine = new SimpleTemplateEngine()
         def template = engine.createTemplate(backgroundScript).make(binding)
 
@@ -330,7 +348,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
         appleScriptCmd.waitFor();
         def retCode = appleScriptCmd.exitValue();
         if (retCode != 0) {
-            throw new RuntimeException("Problem running applescript to set dmg background image: "+retCode+" "+appleScriptCmd.err.text);
+            throw new RuntimeException("Problem running applescript to set dmg background image: " + retCode + " " + appleScriptCmd.err.text);
         }
         runCmd("hdiutil detach /Volumes/${volMountPoint}", "Unable to detach volume: ${volMountPoint}")
         runCmd("hdiutil convert ${dmgOutDir}/${tmpDmgFile} -format UDZO -imagekey zlib-level=9 -o ${dmgOutDir}/${finalDmgFile}", "Unable to convert dmg image")

@@ -1,8 +1,21 @@
+/*
+ Copyright 2015 cr0 (Copyright 2014 crotwell)
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 package com.github.cr0.gradle.macAppBundle
 
-import org.gradle.api.InvalidUserDataException
-import org.gradle.api.Project;
-
+import org.gradle.api.Project
 
 class MacAppBundlePluginExtension implements Serializable {
 
@@ -11,17 +24,17 @@ class MacAppBundlePluginExtension implements Serializable {
      * @param project
      */
     void configureDefaults(Project project) {
-        if (appName == null) appName = "${->project.name}"
-        if (volumeName == null) volumeName = "${->project.name}-${->project.version}"
-        if (dmgName == null) dmgName = "${->project.name}-${->project.version}"
-        if (jvmVersion == null) jvmVersion = project.targetCompatibility.toString()+"+"
-        if (dmgOutputDir == null) dmgOutputDir = "${->project.distsDirName}"
-        setAppStyle(appStyle)
-        if (appStyle == 'Oracle' && bundleJRE) {
-            if(jreHome == null) {
+        if (appName == null) appName = "${-> project.name}"
+        if (volumeName == null) volumeName = "${-> project.name}-${-> project.version}"
+        if (dmgName == null) dmgName = "${-> project.name}-${-> project.version}"
+        if (jvmVersion == null) jvmVersion = project.targetCompatibility.toString() + "+"
+        if (dmgOutputDir == null) dmgOutputDir = "${-> project.distsDirName}"
+
+        if (bundleJRE) {
+            if (jreHome == null) {
                 File jhFile = new File("/usr/libexec/java_home");
-                if ( ! jhFile.exists()) {
-                    throw new RuntimeException("bundleJRE not set and unable to find "+command+", is oracle java installed?");
+                if (!jhFile.exists()) {
+                    throw new RuntimeException("bundleJRE not set and unable to find " + command + ", is oracle java installed?");
                 }
                 def command = """/usr/libexec/java_home"""// Create the String
                 def proc = command.execute()                 // Call *execute* on the string
@@ -33,32 +46,9 @@ class MacAppBundlePluginExtension implements Serializable {
                     // *out* from the external program is *in* for groovy
                     jreHome = proc.in.text.trim();
                 } else {
-                    throw new RuntimeException("bundleJRE not set and return code of "+command+" is nonzero: "+retCode);
+                    throw new RuntimeException("bundleJRE not set and return code of " + command + " is nonzero: " + retCode);
                 }
             }
-         }
-    }
-
-    /** The style of .app created. Use 'Apple' for the original Apple Java in OSX 10.8 and earlier. Starting in
-    OSX 10.9 there can be either Apple Java (1.6) or Oracle Java (1.7) and the internals of the Info.plist and
-    the executable stub are different. Setting this will also change the
-    bundleExecutable and the jarSubdir as both of these are different in Oracle versus Apple styles.
-    The default is 'Oracle'.
-
-    More information on the new Oracle style .app can be found <a href="https://java.net/projects/appbundler">here</a>.
-    */
-    String appStyle = 'Oracle'
-
-    def setAppStyle(String val) {
-        appStyle = val
-        if (val == 'Oracle') {
-            bundleExecutable = 'JavaAppLauncher'
-            jarSubdir = 'Java'
-        } else if (val == 'Apple') {
-            bundleExecutable = 'JavaApplicationStub'
-            jarSubdir = 'Resources/Java'
-        } else {
-            throw new InvalidUserDataException("I don't understand appStyle='${appStyle}', should be one of 'Apple' or 'Oracle'")
         }
     }
 
@@ -102,25 +92,28 @@ class MacAppBundlePluginExtension implements Serializable {
 
     /** Map of properties to be put as -D options for Oracle Java an
      * in the Properties dict inside the Java dict for Apple. Usage should be like
-        javaProperties.put("apple.laf.useScreenMenuBar", "true") */
+     javaProperties.put("apple.laf.useScreenMenuBar", "true") */
     Map javaProperties = [:]
 
     /** List of extended properties to be put as -X options for Oracle Java an
      * in the Properties dict inside the Java dict for Apple. Usage should be like
-        javaProperties.add("apple.laf.useScreenMenuBar") */
+     javaProperties.add("apple.laf.useScreenMenuBar") */
     List javaXProperties = []
 
     /** Map of extra java key-value pairs to be put in JVMOptions for Oracle and
      * put in the java level dict inside Info.plist for Apple. Usage should be like
-        javaExtras.put("mykey", "myvalue") */
+     javaExtras.put("mykey", "myvalue") */
     Map javaExtras = [:]
 
     /** Map of extra bundle key-value pairs to be put in the top level dict inside Info.plist. Usage should be like
-        bundleExtras.put("mykey", "myvalue") */
+     bundleExtras.put("mykey", "myvalue") */
     Map bundleExtras = [:]
 
     /** List of arguments to pass to the application. Only used for Oracle-style apps. */
     List arguments = []
+
+    /** List of folders to search for additional jars */
+    List javaClassPath = []
 
     /* subdir of the Contents dir to put the jar files. Defaults to Java for Oracle and
      * to Resources/Java for Apple.
@@ -152,16 +145,16 @@ class MacAppBundlePluginExtension implements Serializable {
     boolean bundleJRE = false;
 
     /** Directory from which to copy the JRE. Generally this will be the same as
-    $JAVA_HOME or the result of /usr/libexec/java_home. Note that to be compatible
-    with the appbundler utility from Oracle, this is usually the Contents/Home
-    subdirectory of the JDK install.
+     $JAVA_HOME or the result of /usr/libexec/java_home. Note that to be compatible
+     with the appbundler utility from Oracle, this is usually the Contents/Home
+     subdirectory of the JDK install.
 
-    If bundleJRE is true, but jreHome is null, it will be set to the output of
-    /usr/libexec/java_home, which should be correct in most cases.
+     If bundleJRE is true, but jreHome is null, it will be set to the output of
+     /usr/libexec/java_home, which should be correct in most cases.
 
-    For example:
-    /Library/Java/JavaVirtualMachines/jdk1.7.0_51.jdk/Contents/Home
-    */
+     For example:
+     /Library/Java/JavaVirtualMachines/jdk1.7.0_51.jdk/Contents/Home
+     */
     String jreHome
 
     /** for codesign */
@@ -245,7 +238,9 @@ class MacAppBundlePluginExtension implements Serializable {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        MacAppBundlePluginExtension other = (MacAppBundlePluginExtension)obj;
+
+        MacAppBundlePluginExtension other = (MacAppBundlePluginExtension) obj;
+
         if (creatorCode == null) {
             if (other.creatorCode != null)
                 return false;

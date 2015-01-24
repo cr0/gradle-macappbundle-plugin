@@ -1,15 +1,28 @@
-package com.github.cr0.gradle.macAppBundle
+/*
+ Copyright 2015 cr0 (Copyright 2014 crotwell)
 
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+package com.github.cr0.gradle.macAppBundle
 import groovy.xml.MarkupBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
-import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 
 import java.text.SimpleDateFormat
 
-class GenerateInfoPlistTask  extends DefaultTask {
+class GenerateInfoPlistTask extends DefaultTask {
 
     static final String XML_DEF_LINE = '<?xml version="1.0" encoding="UTF-8"?>';
     static final String DOCTYPE_LINE = '<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">'
@@ -18,30 +31,24 @@ class GenerateInfoPlistTask  extends DefaultTask {
 
     @OutputFile
     File getPlistFile() {
-        return project.file("${->project.buildDir}/${->project.macAppBundle.appOutputDir}/${->project.macAppBundle.appName}.app/Contents/Info.plist")
+        return project.file("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}/${-> project.macAppBundle.appName}.app/Contents/Info.plist")
     }
 
     @TaskAction
     def void writeInfoPlist() {
-        if (project.macAppBundle.appStyle == 'Oracle') {
-            writeInfoPlistOracleJava();
-        } else {
-            writeInfoPlistAppleJava();
-        }
-    }
-
-    def void writeInfoPlistOracleJava() {
         MacAppBundlePluginExtension extension = project.macAppBundle
-        def classpath = project.configurations.runtime.collect { "${it.name}" }
-        classpath.add(project.tasks[JavaPlugin.JAR_TASK_NAME].outputs.files.getSingleFile().name)
+        extension.javaClassPath.add("\$APP_ROOT/$extension.jarSubdir/*")
+
         def file = getPlistFile()
         file.parentFile.mkdirs()
+
         def writer = new BufferedWriter(new FileWriter(file))
         writer.writeLine(XML_DEF_LINE);
         writer.writeLine(URL_DOCTYPE_LINE);
         writer.writeLine(SHAMELESS_PROMO);
+
         def xml = new MarkupBuilder(writer)
-        xml.plist(version:"1.0") {
+        xml.plist(version: "1.0") {
             dict() {
                 key('CFBundleDevelopmentRegion')
                 string(extension.bundleDevelopmentRegion)
@@ -62,9 +69,15 @@ class GenerateInfoPlistTask  extends DefaultTask {
                 key('CFBundleVersion')
                 string(project.version)
                 key('CFBundleAllowMixedLocalizations')
-                if (extension.bundleAllowMixedLocalizations) { string('true') } else { string('false') }
+
+                if (extension.bundleAllowMixedLocalizations) {
+                    string('true')
+                } else {
+                    string('false')
+                }
                 key('CFBundleSignature')
                 string(extension.creatorCode)
+
                 if (extension.bundleJRE) {
                     def jreVersion = new File(extension.jreHome).getParentFile().getParentFile().getName()
                     key('JVMRuntime')
@@ -74,23 +87,23 @@ class GenerateInfoPlistTask  extends DefaultTask {
                 string(extension.mainClassName)
                 key('JVMOptions')
                 array() {
-                    extension.javaProperties.each { k, v->
-                            string("-D$k=$v")
+                    extension.javaProperties.each { k, v ->
+                        string("-D$k=$v")
                     }
-                    extension.javaXProperties.each { v->
-                            string("-X$v")
+                    extension.javaXProperties.each { v ->
+                        string("-X$v")
                     }
-                    extension.javaExtras.each { k, v->
-                            string("$k=$v")
+                    extension.javaExtras.each { k, v ->
+                        string("$k=$v")
                     }
                 }
-                key('JVMArguments')
+                key('JVMClassPath')
                 array() {
-                    extension.arguments.each { v->
-                            string("$v")
+                    extension.javaClassPath.each { v ->
+                        string("$v")
                     }
                 }
-                extension.bundleExtras.each { k, v->
+                extension.bundleExtras.each { k, v ->
                     key("$k")
                     doValue(xml, v)
                 }
@@ -99,77 +112,16 @@ class GenerateInfoPlistTask  extends DefaultTask {
         writer.close()
     }
 
-    def void writeInfoPlistAppleJava() {
-        MacAppBundlePluginExtension extension = project.macAppBundle
-        def classpath = project.configurations.runtime.collect { "${it.name}" }
-        classpath.add(project.tasks[JavaPlugin.JAR_TASK_NAME].outputs.files.getSingleFile().name)
-        def file = getPlistFile()
-        file.parentFile.mkdirs()
-        def writer = new BufferedWriter(new FileWriter(file))
-        writer.write(XML_DEF_LINE);writer.newLine();
-        writer.write(DOCTYPE_LINE);writer.newLine();
-        def xml = new MarkupBuilder(writer)
-        xml.plist(version:"0.9") {
-            dict() {
-                key('CFBundleName')
-                string(extension.appName)
-                key('CFBundleIdentifier')
-                string(extension.mainClassName)
-                key('CFBundleVersion')
-                string(project.version)
-                key('CFBundleAllowMixedLocalizations')
-                if (extension.bundleAllowMixedLocalizations) { string('true') } else { string('false') }
-                key('CFBundleExecutable')
-                string(extension.bundleExecutable)
-                key('CFBundleDevelopmentRegion')
-                string(extension.bundleDevelopmentRegion)
-                key('CFBundlePackageType')
-                string(extension.bundlePackageType)
-                key('CFBundleSignature')
-                string(extension.creatorCode)
-                key('CFBundleInfoDictionaryVersion')
-                string(extension.bundleInfoDictionaryVersion)
-                key('CFBundleIconFile')
-                string(project.file(extension.icon).name)
-                key('Java')
-                dict() {
-                    key('MainClass')
-                    string(extension.mainClassName)
-                    key('JVMVersion')
-                    string(extension.jvmVersion)
-                    key('ClassPath')
-                    doValue(xml, classpath.sort().collect { val -> '$JAVAROOT/'+val  })
-                    key('Properties')
-                    dict {
-                        extension.javaProperties.each { k, v->
-                            key("$k")
-                            doValue(xml, v)
-                        }
-                    }
-                    extension.javaExtras.each { k, v->
-                        key("$k")
-                        doValue(xml, v)
-                    }
-                }
-                extension.bundleExtras.each { k, v->
-                    key("$k")
-                    doValue(xml, v)
-                }
-            }
-        }
-        writer.close()
-    }
-
-    def doValue(xml, value)  {
-        if (value instanceof String)  {
+    def doValue(xml, value) {
+        if (value instanceof String) {
             xml.string("$value")
-        } else if (value instanceof Date)  {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
+        } else if (value instanceof Date) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
             xml.date(sdf.format(value));
             //YYYY-MM-DD HH:MM:SS
-        } else if (value instanceof Short || value instanceof Integer)  {
+        } else if (value instanceof Short || value instanceof Integer) {
             xml.integer(value)
-        } else if (value instanceof Float || value instanceof Double)  {
+        } else if (value instanceof Float || value instanceof Double) {
             xml.real(value)
         } else if (value instanceof Boolean) {
             if (value) {
@@ -190,6 +142,6 @@ class GenerateInfoPlistTask  extends DefaultTask {
                     doValue(xml, subv)
                 }
             }
-        } else throw new InvalidUserDataException("unknown type for plist: "+value)
+        } else throw new InvalidUserDataException("unknown type for plist: " + value)
     }
 }
