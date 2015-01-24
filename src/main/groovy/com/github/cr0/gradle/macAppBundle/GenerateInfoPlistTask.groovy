@@ -37,7 +37,7 @@ class GenerateInfoPlistTask extends DefaultTask {
     @TaskAction
     def void writeInfoPlist() {
         MacAppBundlePluginExtension extension = project.macAppBundle
-        extension.javaClassPath.add("\$APP_ROOT/$extension.jarSubdir/*")
+        extension.javaClassPath.add("\$APP_ROOT/Contents/$extension.jarSubdir/*")
 
         def file = getPlistFile()
         file.parentFile.mkdirs()
