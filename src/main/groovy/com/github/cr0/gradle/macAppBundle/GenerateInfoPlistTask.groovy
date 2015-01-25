@@ -100,7 +100,7 @@ class GenerateInfoPlistTask extends DefaultTask {
                 }
 
                 key('NSHumanReadableCopyright')
-                string(extension.copyright)
+                string(extension.bundleCopyright)
 
                 // add user defined values to bundle
                 extension.bundleExtras.each { k, v ->
@@ -110,7 +110,7 @@ class GenerateInfoPlistTask extends DefaultTask {
 
                 // java specific values
                 if (extension.bundleJRE) {
-                    def jreVersion = new File(extension.jreHome).getParentFile().getParentFile().getName()
+                    def jreVersion = new File(extension.jreHome).parentFile.parentFile.name
                     key('JVMRuntime')
                     string(jreVersion)
                 }

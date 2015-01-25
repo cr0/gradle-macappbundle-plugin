@@ -215,7 +215,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
                 include "${-> project.macAppBundle.appName}.app/Contents/MacOS/**"
                 fileMode 0777  // octal requires leading zero
             }
-            task.archiveName = "${-> project.macAppBundle.dmgName}.zip"
+            task.archiveName = "${-> project.macAppBundle.archiveName}.zip"
         }
         return task
     }
@@ -242,7 +242,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
         task.group = GROUP
         task.inputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}")
         task.inputs.property("backgroundImage", { project.macAppBundle.backgroundImage })
-        task.outputs.file("${-> project.buildDir}/${-> project.macAppBundle.dmgOutputDir}/${-> project.macAppBundle.dmgName}.dmg")
+        task.outputs.file("${-> project.buildDir}/${-> project.macAppBundle.dmgOutputDir}/${-> project.macAppBundle.archiveName}.dmg")
 
         project.afterEvaluate {
             def dmgOutDir = project.file("${project.buildDir}/${project.macAppBundle.dmgOutputDir}")
@@ -251,11 +251,11 @@ class MacAppBundlePlugin implements Plugin<Project> {
             if (project.macAppBundle.backgroundImage != null) {
                 // if we have a background image, we need to create a RW disk image so we can set it,
                 // and then convert the RW to a compressed RO image later with the final name
-                tmpDmgName = "tmp_${-> project.macAppBundle.dmgName}.dmg"
+                tmpDmgName = "tmp_${-> project.macAppBundle.archiveName}.dmg"
                 dmgFormat = "UDRW"
             } else {
                 // in this case, we create the disk image in one go without the conversion step
-                tmpDmgName = "${-> project.macAppBundle.dmgName}.dmg"
+                tmpDmgName = "${-> project.macAppBundle.archiveName}.dmg"
                 dmgFormat = "UDZO";
             }
             task.doFirst {
@@ -263,7 +263,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
                 if (dmgFile.exists()) {
                     dmgFile.delete()
                 }
-                def finalDmgFile = new File(dmgOutDir, "${-> project.macAppBundle.dmgName}.dmg")
+                def finalDmgFile = new File(dmgOutDir, "${-> project.macAppBundle.archiveName}.dmg")
                 if (finalDmgFile.exists()) {
                     finalDmgFile.delete()
                 }
@@ -280,7 +280,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
                     // just name, not paths
                     doBackgroundImageAppleScript(dmgOutDir,
                             tmpDmgName,
-                            "${-> project.macAppBundle.dmgName}.dmg",
+                            "${-> project.macAppBundle.archiveName}.dmg",
                             "${-> project.macAppBundle.volumeName}",
                             backgroundImage,
                             "${-> project.macAppBundle.appName}",

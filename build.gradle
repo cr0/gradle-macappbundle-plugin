@@ -16,6 +16,21 @@ apply plugin: 'nu.studer.plugindev'
 
 group = 'com.github.cr0'
 
+// find osx sdk
+def osxSDKRoot = new File("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/")
+if (!osxSDKRoot.exists()) throw new GradleException("SDK root does not exist")
+
+def sdk = null
+for (def c : osxSDKRoot.listFiles()) {
+    if (c.name.compareTo("MacOSX10.8.sdk") < 0) continue // fancy ;)
+
+    if (sdk == null) sdk = c.name
+    else if (sdk.compareTo(c.name) < 0) sdk = c.name
+}
+
+if (sdk == null) throw new GradleException("No feasible SDK found")
+def osxSDK = new File(osxSDKRoot, sdk)
+
 model {
     platforms {
         osx {
@@ -40,7 +55,7 @@ executables {
                 objcCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
                 objcCompiler.args '-F', "${org.gradle.internal.jvm.Jvm.current().javaHome}/../../"
                 linker.args '-framework', "Cocoa"
-                linker.args '-isysroot', "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk"
+                linker.args '-isysroot', osxSDK.absolutePath
             }
         }
     }
