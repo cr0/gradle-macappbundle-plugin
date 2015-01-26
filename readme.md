@@ -51,7 +51,6 @@ macAppBundle {
 
 	archiveName = "Foo App ${pluginVersion}"
 }
-
 ```
 There are a few other options available -- if you're interested have a look at the [source code](https://github.com/cr0/gradle-macappbundle-plugin/blob/master/src/main/groovy/com/github/cr0/gradle/macAppBundle/MacAppBundlePluginExtension.groovy).
 
