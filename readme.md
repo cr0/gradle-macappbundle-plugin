@@ -64,3 +64,6 @@ Shoutouts to crotwell and infinitekind.
 
 * [crotwell/gradle-macappbundle](http://code.google.com/p/gradle-macappbundle) is licensed under the *Apache License 2.0*
 * [infinitekind/appbundler](https://bitbucket.org/infinitekind/appbundler/) is licensed under the *GNU General Public License version 2*
+
+#### Where is 1.0.0 and 2.0.0?
+Since this is a fork of crotwell's version which already was 2.0.0 I decided to bump the version again.
