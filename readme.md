@@ -1,4 +1,4 @@
-### gradle-macappbundle-plugin
+### gradle-macappbundle-plugin [ ![Download](https://api.bintray.com/packages/cr0/gradle-plugins/gradle-macappbundle-plugin/images/download.svg) ](https://bintray.com/cr0/gradle-plugins/gradle-macappbundle-plugin/_latestVersion)
 
 Create OS X application bundles from Java projects using gradle. A JRE can optionally be included.
 
