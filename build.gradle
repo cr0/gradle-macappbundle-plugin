@@ -67,7 +67,7 @@ copy {
 }
 
 plugindev {
-    pluginId 'com.github.cr0.macAppBundle'
+    pluginId 'com.github.cr0.macappbundle'
     pluginName 'gradle-macappbundle-plugin'
     pluginImplementationClass 'com.github.cr0.gradle.macAppBundle.MacAppBundlePlugin'
     pluginDescription 'A Gradle Plugin to create a Mac OSX .app application based on the project with customizable class paths.'

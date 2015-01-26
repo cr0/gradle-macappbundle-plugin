@@ -206,7 +206,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
         task.group = GROUP
         // delay configure of task until extension is populated
         project.afterEvaluate {
-            task.destinationDir = project.file("${project.buildDir}/${project.macAppBundle.dmgOutputDir}")
+            task.destinationDir = project.file("${project.buildDir}/${project.macAppBundle.archiveOutputDir}")
             task.from("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}") {
                 include "${-> project.macAppBundle.appName}.app/**"
                 exclude "${-> project.macAppBundle.appName}.app/Contents/MacOS"
@@ -242,10 +242,10 @@ class MacAppBundlePlugin implements Plugin<Project> {
         task.group = GROUP
         task.inputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}")
         task.inputs.property("backgroundImage", { project.macAppBundle.backgroundImage })
-        task.outputs.file("${-> project.buildDir}/${-> project.macAppBundle.dmgOutputDir}/${-> project.macAppBundle.archiveName}.dmg")
+        task.outputs.file("${-> project.buildDir}/${-> project.macAppBundle.archiveOutputDir}/${-> project.macAppBundle.archiveName}.dmg")
 
         project.afterEvaluate {
-            def dmgOutDir = project.file("${project.buildDir}/${project.macAppBundle.dmgOutputDir}")
+            def archiveOutputDir = project.file("${project.buildDir}/${project.macAppBundle.archiveOutputDir}")
             GString tmpDmgName;
             String dmgFormat;
             if (project.macAppBundle.backgroundImage != null) {
@@ -259,15 +259,15 @@ class MacAppBundlePlugin implements Plugin<Project> {
                 dmgFormat = "UDZO";
             }
             task.doFirst {
-                def dmgFile = new File(dmgOutDir, tmpDmgName)
+                def dmgFile = new File(archiveOutputDir, tmpDmgName)
                 if (dmgFile.exists()) {
                     dmgFile.delete()
                 }
-                def finalDmgFile = new File(dmgOutDir, "${-> project.macAppBundle.archiveName}.dmg")
+                def finalDmgFile = new File(archiveOutputDir, "${-> project.macAppBundle.archiveName}.dmg")
                 if (finalDmgFile.exists()) {
                     finalDmgFile.delete()
                 }
-                workingDir = dmgOutDir
+                workingDir = archiveOutputDir
                 commandLine "hdiutil", "create", "-srcfolder",
                         project.file("${project.buildDir}/${project.macAppBundle.appOutputDir}"),
                         "-format", "${-> dmgFormat}", "-fs", "HFS+",
@@ -278,7 +278,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
                 if (project.macAppBundle.backgroundImage != null) {
                     String backgroundImage = new File(project.macAppBundle.backgroundImage).getName()
                     // just name, not paths
-                    doBackgroundImageAppleScript(dmgOutDir,
+                    doBackgroundImageAppleScript(archiveOutputDir,
                             tmpDmgName,
                             "${-> project.macAppBundle.archiveName}.dmg",
                             "${-> project.macAppBundle.volumeName}",
@@ -288,7 +288,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
                 }
             }
             task.doFirst { task.outputs.files.each { it.delete() } }
-            task.doFirst { dmgOutDir.mkdirs() }
+            task.doFirst { archiveOutputDir.mkdirs() }
         }
         return task
     }
@@ -315,7 +315,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
     /** see
      http://asmaloney.com/2013/07/howto/packaging-a-mac-os-x-application-using-a-dmg/
      */
-    private void doBackgroundImageAppleScript(File dmgOutDir,
+    private void doBackgroundImageAppleScript(File archiveOutputDir,
                                               String tmpDmgFile,
                                               String finalDmgFile,
                                               String volMountPoint,
@@ -327,7 +327,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
             runCmd("hdiutil detach /Volumes/${volMountPoint}", "Unable to detach volume: ${volMountPoint}")
         }
         // mount temp dmg
-        def mountCmdText = "hdiutil attach -readwrite -noverify ${dmgOutDir}/${tmpDmgFile}"
+        def mountCmdText = "hdiutil attach -readwrite -noverify ${archiveOutputDir}/${tmpDmgFile}"
 
         String mountCmdOut = runCmd(mountCmdText, "Unable to mount dmg")
         if (!new File("/Volumes/${volMountPoint}").exists()) {
@@ -351,8 +351,8 @@ class MacAppBundlePlugin implements Plugin<Project> {
             throw new RuntimeException("Problem running applescript to set dmg background image: " + retCode + " " + appleScriptCmd.err.text);
         }
         runCmd("hdiutil detach /Volumes/${volMountPoint}", "Unable to detach volume: ${volMountPoint}")
-        runCmd("hdiutil convert ${dmgOutDir}/${tmpDmgFile} -format UDZO -imagekey zlib-level=9 -o ${dmgOutDir}/${finalDmgFile}", "Unable to convert dmg image")
-        new File("${dmgOutDir}/${tmpDmgFile}").delete()
+        runCmd("hdiutil convert ${archiveOutputDir}/${tmpDmgFile} -format UDZO -imagekey zlib-level=9 -o ${archiveOutputDir}/${finalDmgFile}", "Unable to convert dmg image")
+        new File("${archiveOutputDir}/${tmpDmgFile}").delete()
     }
 
     private String runCmd(GString cmdText, String errMsg) {

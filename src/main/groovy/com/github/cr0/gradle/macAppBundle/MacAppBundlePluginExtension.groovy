@@ -24,9 +24,6 @@ class MacAppBundlePluginExtension implements Serializable {
     /** The output directory for building the app, relative to the build directory. */
     String appOutputDir = "macApp"
 
-    /** The output directory for building the dmg, relative to the build directory. */
-    String dmgOutputDir
-
     /** Creator code, issued by Apple. Four question marks is the default if no code has been issued. */
     String creatorCode = '????'
 
@@ -44,6 +41,9 @@ class MacAppBundlePluginExtension implements Serializable {
 
     /** The base name of the dmg/zip file, without the extension (default project.name-project.version). */
     String archiveName
+
+    /** The output directory for building the dmg, relative to the build directory. */
+    String archiveOutputDir
 
     /** The background image for the DMG. */
     String backgroundImage
@@ -154,7 +154,7 @@ class MacAppBundlePluginExtension implements Serializable {
         if (appName == null) appName = "${-> project.name}"
         if (volumeName == null) volumeName = "${-> project.name}-${-> project.version}"
         if (archiveName == null) archiveName = "${-> project.name}-${-> project.version}"
-        if (dmgOutputDir == null) dmgOutputDir = "${-> project.distsDirName}"
+        if (archiveOutputDir == null) archiveOutputDir = "${-> project.distsDirName}"
         if (version == null) version = "${-> project.version}"
         if (shortVersion == null) shortVersion = "${-> project.version}"
         if (bundleCopyright == null) bundleCopyright = "Copyright ${-> Calendar.instance.get(Calendar.YEAR)} ${-> project.name}"
