@@ -1,4 +1,4 @@
-### gradle-macappbundle
+### gradle-macappbundle-plugin
 
 Create OS X application bundles from Java projects using gradle. A JRE can optionally be included.
 
