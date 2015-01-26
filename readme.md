@@ -12,7 +12,7 @@ This is a fork of [gradle-macappbundle](https://code.google.com/p/gradle-macappb
 
 #### How to use
 
-First, you need to include the `macappbundle` plugin using the following fancy gradle 2.1+ syntax. The plugin is available `jcenter`.
+First, you need to include the `macappbundle` plugin using the following fancy gradle 2.1+ syntax. The plugin is/should be available at `jcenter`.
 
 ```
 plugins {
