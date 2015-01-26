@@ -68,6 +68,7 @@ copy {
 
 plugindev {
     pluginId 'com.github.cr0.macAppBundle'
+    pluginName 'gradle-macappbundle-plugin'
     pluginImplementationClass 'com.github.cr0.gradle.macAppBundle.MacAppBundlePlugin'
     pluginDescription 'A Gradle Plugin to create a Mac OSX .app application based on the project with customizable class paths.'
     pluginLicenses 'Apache-2.0'
@@ -75,9 +76,13 @@ plugindev {
     authorId 'cr0'
     authorName 'Christian Roth'
     authorEmail 'christian.roth@port17.de'
-    projectUrl 'https://github.com/cr0/gradle-macappbundle'
+    projectUrl 'https://github.com/cr0/gradle-macappbundle-plugin'
     projectInceptionYear '2015'
     done() // do not omit this
 }
 
-
+bintray {
+    user = System.properties['bintray_user']
+    key = System.properties['bintray_api_key']
+    pkg.repo = 'gradle-plugins'
+}
