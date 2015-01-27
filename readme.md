@@ -54,7 +54,7 @@ macAppBundle {
 ```
 There are a few other options available -- if you're interested have a look at the [source code](https://github.com/cr0/gradle-macappbundle-plugin/blob/master/src/main/groovy/com/github/cr0/gradle/macAppBundle/MacAppBundlePluginExtension.groovy).
 
-If you use `createApp`, the plugin creates an app named `Foo App.app` in the `build/macApp` (settable using `appOutputDir`) directory.
+If you use `createApp`, the plugin creates an app named `Foo App.app` in the `build/macApp` (settable using `archiveOutputDir`) directory.
 
 You can also package the app as either a ZIP file (`createAppZip`) or a DMG with an optional background image (`createDmg`; applicable only on OS X).
 
