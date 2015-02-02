@@ -58,6 +58,10 @@ If you use `createApp`, the plugin creates an app named `Foo App.app` in the `bu
 
 You can also package the app as either a ZIP file (`createAppZip`) or a DMG with an optional background image (`createDmg`; applicable only on OS X).
 
+##### A note on external cps
+
+3.0.1 allows external class paths, i.e. all paths which are not in the app bundle, are optional. This is needed since many apps use external class path directories for e.g. plugins. Hence, such directories do not exist at first launch.
+
 #### Licenses
 
 Shoutouts to crotwell and infinitekind.

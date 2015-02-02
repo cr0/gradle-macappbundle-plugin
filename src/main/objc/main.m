@@ -228,6 +228,7 @@ int launch(char *commandName, int progargc, char *progargv[]) {
 
         int k = 0;
         for (NSString *file in cp) {
+            bool appRoot = ([file rangeOfString:@APP_ROOT_PREFIX].location != NSNotFound);
             file = [file stringByReplacingOccurrencesOfString:@APP_ROOT_PREFIX withString:[mainBundle bundlePath]];
             file = [file stringByReplacingOccurrencesOfString:@CURRENT_USER_NAME_PREFIX withString: currentUser];
 
@@ -235,16 +236,20 @@ int launch(char *commandName, int progargc, char *progargv[]) {
             if ([file hasSuffix:@"*"]) {
                 file = [file stringByReplacingOccurrencesOfString:@"/*" withString:@""];
                 NSArray *javaDirectoryContents = [defaultFileManager contentsOfDirectoryAtPath:file error:nil];
-                if (javaDirectoryContents == nil) {
+                
+                // throw error only if there are empty java dirs within the app
+                if (appRoot && javaDirectoryContents == nil) {
                     [[NSException exceptionWithName:@JAVA_LAUNCH_ERROR
                         reason:NSLocalizedString(@"JavaDirectoryNotFound", @UNSPECIFIED_ERROR)
                         userInfo:nil] raise];
                 }
-
-                for (NSString *subfile in javaDirectoryContents) {
-                    if ([subfile hasSuffix:@".jar"]) {
-                        if (k++ > 0) [classPath appendString:@":"];
-                        [classPath appendFormat:@"%@/%@", file, subfile];
+                
+                if (javaDirectoryContents != nil) {
+                    for (NSString *subfile in javaDirectoryContents) {
+                        if ([subfile hasSuffix:@".jar"]) {
+                            if (k++ > 0) [classPath appendString:@":"];
+                            [classPath appendFormat:@"%@/%@", file, subfile];
+                        }
                     }
                 }
             }
