@@ -16,7 +16,7 @@ First, you need to include the `macappbundle` plugin using the following fancy g
 
 ```
 plugins {
-  id "com.github.cr0.macappbundle" version "3.0.0"
+  id "com.github.cr0.macappbundle" version "3.0.1"
 }
 ```
 
