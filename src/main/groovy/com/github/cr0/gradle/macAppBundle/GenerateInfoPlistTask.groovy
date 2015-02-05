@@ -133,6 +133,11 @@ class GenerateInfoPlistTask extends DefaultTask {
                 array() {
                     extension.arguments.each { v -> string("$v")}
                 }
+
+                if (extension.debug) {
+                    key('JVMDebug')
+                    xml.true()
+                }
             }
         }
         writer.close()

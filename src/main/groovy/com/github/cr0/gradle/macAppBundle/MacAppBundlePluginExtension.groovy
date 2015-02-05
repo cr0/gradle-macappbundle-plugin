@@ -146,6 +146,9 @@ class MacAppBundlePluginExtension implements Serializable {
      end tell
 """
 
+    /** Enable debug mode will tell the java launcher to be chatty */
+    boolean debug = false;
+
     /** configures default values that depend on values set in the build file like version, and so must be
      * done late in the run order, after the build script is evaluated but before any task in the plugin is run
      * @param project

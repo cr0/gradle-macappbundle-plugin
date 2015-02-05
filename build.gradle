@@ -61,11 +61,6 @@ executables {
     }
 }
 
-copy {
-    from 'build/binaries/mainExecutable/JavaAppLauncher'
-    into 'src/main/resources/com/github/cr0/macAppBundle'
-}
-
 plugindev {
     pluginId 'com.github.cr0.macappbundle'
     pluginName 'gradle-macappbundle-plugin'
@@ -86,3 +81,13 @@ bintray {
     key = System.properties['bintray_api_key']
     pkg.repo = 'gradle-plugins'
 }
+
+task copyStub(type: Copy, dependsOn: 'mainExecutable') {
+    from 'build/binaries/mainExecutable/'
+    into 'src/main/resources/com/github/cr0/macAppBundle/'
+    outputs.upToDateWhen { false }
+}
+
+compileGroovy.dependsOn += copyStub
+
+

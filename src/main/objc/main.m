@@ -199,66 +199,52 @@ int launch(char *commandName, int progargc, char *progargv[]) {
             userInfo:nil] raise];
     }
 
-    NSString *javaPath = [mainBundlePath stringByAppendingString:@"/Contents/Java"];
     NSMutableString *classPath = [NSMutableString stringWithString:@"-Djava.class.path="];
 
     NSArray *cp = [infoDictionary objectForKey:@JVM_CLASSPATH_KEY];
     NSFileManager *defaultFileManager = [NSFileManager defaultManager];
+    
     if (cp == nil) {
-
-        // Implicit classpath, so use the contents of the "Java" folder to build an explicit classpath
-
-        [classPath appendFormat:@"%@/Classes", javaPath];
-        NSArray *javaDirectoryContents = [defaultFileManager contentsOfDirectoryAtPath:javaPath error:nil];
-        if (javaDirectoryContents == nil) {
-            [[NSException exceptionWithName:@JAVA_LAUNCH_ERROR
-                reason:NSLocalizedString(@"JavaDirectoryNotFound", @UNSPECIFIED_ERROR)
-                userInfo:nil] raise];
+        if (isDebugging) {
+            NSLog(@"No cp given, needing to add app bundle folder");
         }
+        cp = @[[NSString stringWithFormat: @"%@/Contents/Java/*", @APP_ROOT_PREFIX]];
+    }
 
-        for (NSString *file in javaDirectoryContents) {
-            if ([file hasSuffix:@".jar"]) {
-                [classPath appendFormat:@":%@/%@", javaPath, file];
+    // Collect jars in classpaths
+    int k = 0;
+    for (NSString *file in cp) {
+        bool appRoot = ([file rangeOfString:@APP_ROOT_PREFIX].location != NSNotFound);
+        file = [file stringByReplacingOccurrencesOfString:@APP_ROOT_PREFIX withString:[mainBundle bundlePath]];
+        file = [file stringByReplacingOccurrencesOfString:@CURRENT_USER_NAME_PREFIX withString: currentUser];
+
+        // extend wildcards
+        if ([file hasSuffix:@"*"]) {
+            file = [file stringByReplacingOccurrencesOfString:@"/*" withString:@""];
+            NSArray *javaDirectoryContents = [defaultFileManager contentsOfDirectoryAtPath:file error:nil];
+            
+            // throw error only if there are empty java dirs within the app
+            if (appRoot && javaDirectoryContents == nil) {
+                [[NSException exceptionWithName: @JAVA_LAUNCH_ERROR
+                                         reason: [NSString stringWithFormat: NSLocalizedString(@"JavaDirectoryNotFound %@", @UNSPECIFIED_ERROR), file]
+                                       userInfo: nil] raise];
             }
-        }
-
-    } else {
-
-        // Explicit ClassPath
-
-        int k = 0;
-        for (NSString *file in cp) {
-            bool appRoot = ([file rangeOfString:@APP_ROOT_PREFIX].location != NSNotFound);
-            file = [file stringByReplacingOccurrencesOfString:@APP_ROOT_PREFIX withString:[mainBundle bundlePath]];
-            file = [file stringByReplacingOccurrencesOfString:@CURRENT_USER_NAME_PREFIX withString: currentUser];
-
-            // extend wildcards
-            if ([file hasSuffix:@"*"]) {
-                file = [file stringByReplacingOccurrencesOfString:@"/*" withString:@""];
-                NSArray *javaDirectoryContents = [defaultFileManager contentsOfDirectoryAtPath:file error:nil];
-                
-                // throw error only if there are empty java dirs within the app
-                if (appRoot && javaDirectoryContents == nil) {
-                    [[NSException exceptionWithName:@JAVA_LAUNCH_ERROR
-                        reason:NSLocalizedString(@"JavaDirectoryNotFound", @UNSPECIFIED_ERROR)
-                        userInfo:nil] raise];
-                }
-                
-                if (javaDirectoryContents != nil) {
-                    for (NSString *subfile in javaDirectoryContents) {
-                        if ([subfile hasSuffix:@".jar"]) {
-                            if (k++ > 0) [classPath appendString:@":"];
-                            [classPath appendFormat:@"%@/%@", file, subfile];
-                        }
+            
+            if (javaDirectoryContents != nil) {
+                for (NSString *subfile in javaDirectoryContents) {
+                    if ([subfile hasSuffix:@".jar"]) {
+                        if (k++ > 0) [classPath appendString:@":"];
+                        [classPath appendFormat:@"%@/%@", file, subfile];
                     }
                 }
             }
-            else if ([file hasSuffix:@".jar"]) {
-                if (k++ > 0) [classPath appendString:@":"];
-                [classPath appendString:file];
-            }
+        }
+        else if ([file hasSuffix:@".jar"]) {
+            if (k++ > 0) [classPath appendString:@":"];
+            [classPath appendString:file];
         }
     }
+    
 
     // Set the library path
     NSString *libraryPath = [NSString stringWithFormat:@"-Djava.library.path=%@/Contents/MacOS", mainBundlePath];
