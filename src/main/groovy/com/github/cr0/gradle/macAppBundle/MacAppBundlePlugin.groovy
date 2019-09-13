@@ -241,7 +241,7 @@ class MacAppBundlePlugin implements Plugin<Project> {
         task.description = "Create a dmg containing the .app and optional background image"
         task.group = GROUP
         task.inputs.dir("${-> project.buildDir}/${-> project.macAppBundle.appOutputDir}")
-        task.inputs.property("backgroundImage", { project.macAppBundle.backgroundImage })
+        task.inputs.property("backgroundImage", { project.macAppBundle.backgroundImage }).optional(true)
         task.outputs.file("${-> project.buildDir}/${-> project.macAppBundle.archiveOutputDir}/${-> project.macAppBundle.archiveName}.dmg")
 
         project.afterEvaluate {
