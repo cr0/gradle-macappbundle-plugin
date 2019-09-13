@@ -107,7 +107,7 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     NSDictionary *infoDictionary = [mainBundle infoDictionary];
 
     // Test for debugging (but only on the second runthrough)
-    bool isDebugging = (launchCount > 0) && [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];
+    bool isDebugging = [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];
 
     if (isDebugging) {
         NSLog(@"Loading Application '%@'", [infoDictionary objectForKey:@"CFBundleName"]);
@@ -464,7 +464,7 @@ NSString * findDylib (
         NSTask *task = [[NSTask alloc] init];
         [task setLaunchPath:@"/usr/libexec/java_home"];
 
-        NSArray *args = [NSArray arrayWithObjects: @"-v", @"1.7+", nil];
+        NSArray *args = [NSArray arrayWithObjects: @"-v", @"1.7+", @"-F", nil];
         [task setArguments:args];
 
         NSPipe *stdout = [NSPipe pipe];
@@ -499,31 +499,8 @@ NSString * findDylib (
             return nil;
         }
 
-        int version = 0;
-
-        NSRange vrange = [outRead rangeOfString:@"jdk1."];
-
-        if (vrange.location != NSNotFound) {
-            NSString *vstring = [outRead substringFromIndex:(vrange.location)];
-
-            vrange  = [vstring rangeOfString:@"/"];
-            vstring = [vstring substringToIndex:vrange.location];
-
-            version = extractMajorVersion(vstring);
-
-            if (isDebugging) {
-                NSLog (@"Found a Java %@ JDK", vstring);
-                NSLog (@"Looks like major version %d", extractMajorVersion(vstring));
-            }
-        }
-
-        if ( version >= 7 ) {
-            if (isDebugging) {
-                NSLog (@"JDK version qualifies");
-            }
-            return [[outRead stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]
-                                    stringByAppendingPathComponent:@"/jre/lib/jli/libjli.dylib"];
-        }
+        return [[outRead stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]
+                                stringByAppendingPathComponent:@"/jre/lib/jli/libjli.dylib"];
     }
     @catch (NSException *exception)
     {
