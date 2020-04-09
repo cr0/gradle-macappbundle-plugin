@@ -1,11 +1,15 @@
+import org.gradle.internal.jvm.Jvm
+
 buildscript {
     repositories {
         jcenter()
         mavenCentral()
+        mavenLocal()
     }
+
     dependencies {
         classpath 'org.codehaus.groovy:groovy-all:2.3.6'
-        classpath 'nu.studer:gradle-plugindev-plugin:1.0.3'
+        classpath 'nu.studer:gradle-plugindev-plugin:1.0.12'
     }
 }
 
@@ -17,19 +21,18 @@ apply plugin: 'nu.studer.plugindev'
 group = 'com.github.cr0'
 
 // find osx sdk
-def osxSDKRoot = new File("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/")
-if (!osxSDKRoot.exists()) throw new GradleException("SDK root does not exist")
 
-def sdk = null
-for (def c : osxSDKRoot.listFiles()) {
-    if (c.name.compareTo("MacOSX10.8.sdk") < 0) continue // fancy ;)
-
-    if (sdk == null) sdk = c.name
-    else if (sdk.compareTo(c.name) < 0) sdk = c.name
+String findMacOSSDKRoot() {
+    def stdoutBuffer = new ByteArrayOutputStream()
+    exec {
+        commandLine "xcrun", "--sdk", "macosx", "--show-sdk-path"
+        standardOutput = stdoutBuffer
+    }
+    return stdoutBuffer.toString().trim()
 }
 
-if (sdk == null) throw new GradleException("No feasible SDK found")
-def osxSDK = new File(osxSDKRoot, sdk)
+def osxSDK = findMacOSSDKRoot()
+if (osxSDK == "") throw new GradleException("No feasible SDK found")
 
 model {
     platforms {
@@ -41,21 +44,34 @@ model {
     buildTypes {
         release
     }
-}
 
-executables {
-    main {
-        baseName "JavaAppLauncher"
+    repositories {
+        libs(PrebuiltLibraries) {
+            javaHeaders {
+                headers.srcDirs "${Jvm.current().javaHome}/include", "${Jvm.current().javaHome}/include/darwin"
+            }
+        }
     }
 
-    all {
-        binaries.all {
-            if (targetPlatform.operatingSystem.macOsX) {
-                objcCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
-                objcCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
-                objcCompiler.args '-F', "${org.gradle.internal.jvm.Jvm.current().javaHome}/../../"
+    components {
+        JavaAppLauncher(NativeExecutableSpec) {
+            sources {
+                objc {
+                    lib library: 'javaHeaders', linkage: 'api'
+                    source {
+                        srcDirs "src/main/objc"
+                        include "**/*.m"
+                    }
+                }
+            }
+
+        }
+    }
+
+    binaries {
+        all {
+            if (toolChain in Clang) {
                 linker.args '-framework', "Cocoa"
-                linker.args '-isysroot', osxSDK.absolutePath
             }
         }
     }
@@ -82,8 +98,8 @@ bintray {
     pkg.repo = 'gradle-plugins'
 }
 
-task copyStub(type: Copy, dependsOn: 'mainExecutable') {
-    from 'build/binaries/mainExecutable/'
+task copyStub(type: Copy, dependsOn: 'JavaAppLauncherExecutable') {
+    from 'build/exe/javaAppLauncher/'
     into 'src/main/resources/com/github/cr0/macAppBundle/'
     outputs.upToDateWhen { false }
 }

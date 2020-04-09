@@ -27,6 +27,7 @@
 #import <Cocoa/Cocoa.h>
 #include <dlfcn.h>
 #include <jni.h>
+#include <fts.h>
 
 #define JAVA_LAUNCH_ERROR "JavaLaunchError"
 
@@ -67,8 +68,9 @@ static int launchCount = 0;
 
 int launch(char *, int, char **);
 NSString * findDylib (bool);
-int extractMajorVersion (NSString *vstring)
-;NSString * convertRelativeFilePath(NSString * path);
+int extractMajorVersion (NSString *vstring);
+NSString * convertRelativeFilePath(NSString * path);
+NSString * findFirstFile(NSString * needle, NSString * haystack);
 
 int main(int argc, char *argv[]) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -84,7 +86,7 @@ int main(int argc, char *argv[]) {
         result = 0;
     } @catch (NSException *exception) {
         NSAlert *alert = [[NSAlert alloc] init];
-        [alert setAlertStyle:NSCriticalAlertStyle];
+        [alert setAlertStyle:NSAlertStyleCritical];
         [alert setMessageText:[exception reason]];
         [alert runModal];
 
@@ -107,7 +109,7 @@ int launch(char *commandName, int progargc, char *progargv[]) {
     NSDictionary *infoDictionary = [mainBundle infoDictionary];
 
     // Test for debugging (but only on the second runthrough)
-    bool isDebugging = (launchCount > 0) && [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];
+    bool isDebugging = [[infoDictionary objectForKey:@JVM_DEBUG_KEY] boolValue];
 
     if (isDebugging) {
         NSLog(@"Loading Application '%@'", [infoDictionary objectForKey:@"CFBundleName"]);
@@ -464,7 +466,7 @@ NSString * findDylib (
         NSTask *task = [[NSTask alloc] init];
         [task setLaunchPath:@"/usr/libexec/java_home"];
 
-        NSArray *args = [NSArray arrayWithObjects: @"-v", @"1.7+", nil];
+        NSArray *args = [NSArray arrayWithObjects: @"-v", @"1.7+", @"-F", nil];
         [task setArguments:args];
 
         NSPipe *stdout = [NSPipe pipe];
@@ -499,31 +501,9 @@ NSString * findDylib (
             return nil;
         }
 
-        int version = 0;
-
-        NSRange vrange = [outRead rangeOfString:@"jdk1."];
-
-        if (vrange.location != NSNotFound) {
-            NSString *vstring = [outRead substringFromIndex:(vrange.location)];
-
-            vrange  = [vstring rangeOfString:@"/"];
-            vstring = [vstring substringToIndex:vrange.location];
-
-            version = extractMajorVersion(vstring);
-
-            if (isDebugging) {
-                NSLog (@"Found a Java %@ JDK", vstring);
-                NSLog (@"Looks like major version %d", extractMajorVersion(vstring));
-            }
-        }
-
-        if ( version >= 7 ) {
-            if (isDebugging) {
-                NSLog (@"JDK version qualifies");
-            }
-            return [[outRead stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]
-                                    stringByAppendingPathComponent:@"/jre/lib/jli/libjli.dylib"];
-        }
+        NSString *homeDir = [outRead stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        return findFirstFile(@"libjli.dylib", homeDir);
+        
     }
     @catch (NSException *exception)
     {
@@ -563,4 +543,39 @@ int extractMajorVersion (NSString *vstring)
 
 NSString * convertRelativeFilePath(NSString * path) {
     return [path stringByStandardizingPath];
+}
+
+NSString * findFirstFile(NSString * needle, NSString * haystack) {
+
+    FTSENT *node = NULL;
+    
+    char *paths[] = {(char*) haystack.UTF8String, NULL};
+    FTS* tree = fts_open(paths, FTS_NOCHDIR | FTS_LOGICAL | FTS_XDEV, NULL);
+    
+    NSString* foundFilePath = NULL;
+    
+    while ((node = fts_read(tree))) {
+        
+        // Skip folders that begin with a dot
+        if (node->fts_level > 0 && node->fts_name[0] == '.') {
+            fts_set(tree, node, FTS_SKIP);
+            
+        } else if (node->fts_info & FTS_F) {
+            
+            if (strcmp(node->fts_name, needle.UTF8String) == 0) {
+                foundFilePath = [NSString stringWithCString: node->fts_path encoding: NSUTF8StringEncoding];
+                break;
+            }
+        }
+    }
+    
+    if (errno) {
+        NSLog (@"fts_read %d", errno);
+    }
+    
+    if (fts_close(tree)) {
+        NSLog (@"fts_close");
+    }
+    
+    return foundFilePath;
 }
