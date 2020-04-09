@@ -27,6 +27,7 @@
 #import <Cocoa/Cocoa.h>
 #include <dlfcn.h>
 #include <jni.h>
+#include <fts.h>
 
 #define JAVA_LAUNCH_ERROR "JavaLaunchError"
 
@@ -67,8 +68,9 @@ static int launchCount = 0;
 
 int launch(char *, int, char **);
 NSString * findDylib (bool);
-int extractMajorVersion (NSString *vstring)
-;NSString * convertRelativeFilePath(NSString * path);
+int extractMajorVersion (NSString *vstring);
+NSString * convertRelativeFilePath(NSString * path);
+NSString * findFirstFile(NSString * needle, NSString * haystack);
 
 int main(int argc, char *argv[]) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -84,7 +86,7 @@ int main(int argc, char *argv[]) {
         result = 0;
     } @catch (NSException *exception) {
         NSAlert *alert = [[NSAlert alloc] init];
-        [alert setAlertStyle:NSCriticalAlertStyle];
+        [alert setAlertStyle:NSAlertStyleCritical];
         [alert setMessageText:[exception reason]];
         [alert runModal];
 
@@ -499,8 +501,9 @@ NSString * findDylib (
             return nil;
         }
 
-        return [[outRead stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]
-                                stringByAppendingPathComponent:@"/jre/lib/jli/libjli.dylib"];
+        NSString *homeDir = [outRead stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        return findFirstFile(@"libjli.dylib", homeDir);
+        
     }
     @catch (NSException *exception)
     {
@@ -540,4 +543,39 @@ int extractMajorVersion (NSString *vstring)
 
 NSString * convertRelativeFilePath(NSString * path) {
     return [path stringByStandardizingPath];
+}
+
+NSString * findFirstFile(NSString * needle, NSString * haystack) {
+
+    FTSENT *node = NULL;
+    
+    char *paths[] = {(char*) haystack.UTF8String, NULL};
+    FTS* tree = fts_open(paths, FTS_NOCHDIR | FTS_LOGICAL | FTS_XDEV, NULL);
+    
+    NSString* foundFilePath = NULL;
+    
+    while ((node = fts_read(tree))) {
+        
+        // Skip folders that begin with a dot
+        if (node->fts_level > 0 && node->fts_name[0] == '.') {
+            fts_set(tree, node, FTS_SKIP);
+            
+        } else if (node->fts_info & FTS_F) {
+            
+            if (strcmp(node->fts_name, needle.UTF8String) == 0) {
+                foundFilePath = [NSString stringWithCString: node->fts_path encoding: NSUTF8StringEncoding];
+                break;
+            }
+        }
+    }
+    
+    if (errno) {
+        NSLog (@"fts_read %d", errno);
+    }
+    
+    if (fts_close(tree)) {
+        NSLog (@"fts_close");
+    }
+    
+    return foundFilePath;
 }
